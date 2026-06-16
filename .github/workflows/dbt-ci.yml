@@ -16,12 +16,41 @@ jobs:
         with:
           python-version: "3.11"
 
-      - run: pip install dbt-core dbt-snowflake
+      - name: Install dbt
+        run: |
+          pip install dbt-core dbt-databricks
 
-      - run: dbt deps
+      - name: Create dbt profile
+        run: |
+          mkdir -p ~/.dbt
 
-      - run: dbt parse
+          cat <<EOF > ~/.dbt/profiles.yml
+          abhijith_dbt_youtube:
+            target: dev
+            outputs:
+              dev:
+                type: databricks
+                host: dbc-b5252d38-6b11.cloud.databricks.com
+                http_path: /sql/1.0/warehouses/6afbf7feabb870e8
+                catalog: dbt_tutorial_dev
+                schema: default
+                token: ${DATABRICKS_TOKEN}
+                threads: 1
+          EOF
+        env:
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
-      - run: dbt compile
+      - name: dbt debug
+        run: dbt debug
 
-      - run: dbt test --target dev
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt parse
+        run: dbt parse
+
+      - name: dbt compile
+        run: dbt compile
+
+      - name: dbt test
+        run: dbt test --target dev
